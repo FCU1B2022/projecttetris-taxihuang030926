@@ -1,27 +1,44 @@
+// define constants
 #define CANVAS_HEIGHT 20
 #define CANVAS_WIDTH 10
 #define LEFT_KEY 0x25
 #define RIGHT_KEY 0x27
 #define ROTATE_KEY 0x26
-#define DOWN_KEY 0x28
+#define SOFT_DROP_KEY 0x28
 #define HARD_DROP_KEY 0x20
 
+// include libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+
+// system detection
+#ifdef _WIN32
 #include <windows.h>
+#define CLS() system("cls")
+#define LEFT_FUNC() GetAsyncKeyState(LEFT_KEY) & 0x8000
+#define RIGHT_FUNC() GetAsyncKeyState(RIGHT_KEY) & 0x8000
+#define ROTATE_FUNC() GetAsyncKeyState(ROTATE_KEY) & 0x8000
+#define SOFT_DROP_FUNC() GetAsyncKeyState(SOFT_DROP_KEY) & 0x8000
+#define HARD_DROP_FUNC() GetAsyncKeyState(HARD_DROP_KEY) & 0x8000
+#define SLEEP(x) Sleep(x)
+#elif __APPLE__
+#error "MacOS is not supported."
+#elif __linux__ 
+#error "Linux is not supported."
+#endif
 
 typedef enum color {
-	RED = 41,
+	RED = 1,
 	GREEN,
-	YELLOW,
-	BLUE,
-	PURPLE,
-	CYAN,
-	WHITE,
+	YELLOW = 220,
+	BLUE = 21,
+	PURPLE = 93,
+	CYAN = 6,
+	WHITE = 231,
 	BLACK = 0,
-	ORANGE = 404, // to be modified
+	ORANGE = 208, // to be modified
 }Color;
 
 typedef enum shapeID {
@@ -63,11 +80,11 @@ Shape shape[7] = {
 													   {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}},
 													   {{0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}}}},
 	{.shape = J, .color = BLUE, .size = 3, .rotates = {{{1, 0, 0}, {1, 1, 1}, {0, 0, 0}},
-													   {{0, 1, 1}, {0, 1, 0}, {0, 1, 0}},
-													   {{0, 0, 0}, {1, 1, 1}, {0, 0, 1}},
+													   {{0, 1, 0}, {0, 1, 0}, {0, 1, 1}},
+													   {{0, 0, 0}, {1, 1, 1}, {1, 0, 0}},
 													   {{1, 1, 0}, {0, 1, 0}, {0, 1, 0}}}},
 	{.shape = L, .color = ORANGE, .size = 3, .rotates = {{{0, 0, 1}, {1, 1, 1}, {0, 0, 0}}, 
-														{{0, 1, 0}, {0, 1 ,0}, {1, 1, 0}},
+														{{0, 1, 0}, {0, 1 ,0}, {0, 1, 1}},
 														{{0, 0, 0}, {1, 1, 1}, {1, 0, 0}},
 														{{1, 1, 0}, {0, 1, 0}, {0, 1, 0}}}},
 	{.shape = O, .color = YELLOW, .size = 2, .rotates = {{{1, 1}, {1, 1}},
@@ -100,11 +117,37 @@ void resetBlock(Block* block) {
 	block->current = false;
 }
 
-bool move(int height, int width, Block canvas[height][width], int originalX, int originalY, int originalRotate, int newX, int newY, int newRotate, ShapeID shapeId) {
-
-}
+// bool move(int height, int width, Block canvas[height][width], int originalX, int originalY, int originalRotate, int newX, int newY, int newRotate, ShapeID shapeId) {
+// 
+// }
 
 int main() {
+	Color cur;
+	for (int i = 0; i < 7; i++)
+	{
+		for (int r = 0; r < 4; r++)
+		{
+			for (int s = 0; s < shape[i].size; s++)
+			{
+				for (int t = 0; t < shape[i].size; t++)
+				{
+					if (shape[i].rotates[r][s][t])
+					{
+						cur = shape[i].color;
+					}
+					else
+					{
+						cur = WHITE;
+					}
+					printf("\033[48;5;%dm  \033[0m", cur);
+				}
+				printf("\n");
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
+	/*
 	srand(tim(NULL));
 	State state = {
 		.x = CANVAS_HEIGHT,
@@ -121,6 +164,6 @@ int main() {
 	}
 
 	system("cls");
-	printf("\e[?25l"); // hide cursor
+	printf("\e[?25l"); // hide cursor */
 	return 0;
 }
