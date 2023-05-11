@@ -1,3 +1,11 @@
+#define CANVAS_HEIGHT 20
+#define CANVAS_WIDTH 10
+#define LEFT_KEY 0x25
+#define RIGHT_KEY 0x27
+#define ROTATE_KEY 0x26
+#define DOWN_KEY 0x28
+#define HARD_DROP_KEY 0x20
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -34,6 +42,21 @@ typedef struct {
 	char rotates[4][4][4];
 } Shape;
 
+typedef struct {
+	int x;
+	int y;
+	int score;
+	int rotate;
+	int falltime;
+	ShapeID queue[4];
+}State;
+
+typedef struct {
+	Color color;
+	ShapeID shape;
+	bool current;
+}Block;
+ 
 Shape shape[7] = {
 	{.shape = I, .color = CYAN, .size = 4, .rotates = {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}},
 													   {{0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}},
@@ -65,12 +88,39 @@ Shape shape[7] = {
 													  {{0, 1, 0}, {1, 1, 0}, {1, 0 , 0}}}},
 };
 
-typedef struct {
-	Color color;
-	ShapeID shape;
-}Block;
+void setBlock(Block* block, Color color, ShapeID shape, bool current) {
+	block->color = color;
+	block->shape = shape;
+	block->current = current;
+}
 
+void resetBlock(Block* block) {
+	block->color = BLACK;
+	block->shape = EMPTY;
+	block->current = false;
+}
+
+bool move(int height, int width, Block canvas[height][width], int originalX, int originalY, int originalRotate, int newX, int newY, int newRotate, ShapeID shapeId) {
+
+}
 
 int main() {
+	srand(tim(NULL));
+	State state = {
+		.x = CANVAS_HEIGHT,
+		.y = 0,
+		.score = 0,
+		.rotate = 0,
+		.falltime = 0
+	};
+	Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH];
+	for (int i = 0; i < CANVAS_HEIGHT; i++) {
+		for (int j = 0; j < CANVAS_WIDTH; j++) {
+			resetBlock(&canvas[i][j]);
+		}
+	}
+
+	system("cls");
+	printf("\e[?25l"); // hide cursor
 	return 0;
 }
