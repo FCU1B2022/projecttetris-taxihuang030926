@@ -38,7 +38,7 @@ typedef enum color {
 	CYAN = 6,
 	WHITE = 231,
 	BLACK = 0,
-	ORANGE = 208, // to be modified
+	ORANGE = 208,
 }Color;
 
 typedef enum shapeID {
@@ -66,14 +66,14 @@ typedef struct {
 	int rotate;
 	int falltime;
 	ShapeID queue[4];
-}State;
+} State;
 
 typedef struct {
 	Color color;
 	ShapeID shape;
 	bool current;
-}Block;
- 
+} Block;
+
 Shape shape[7] = {
 	{.shape = I, .color = CYAN, .size = 4, .rotates = {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}},
 													   {{0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}},
@@ -83,7 +83,7 @@ Shape shape[7] = {
 													   {{0, 1, 0}, {0, 1, 0}, {0, 1, 1}},
 													   {{0, 0, 0}, {1, 1, 1}, {1, 0, 0}},
 													   {{1, 1, 0}, {0, 1, 0}, {0, 1, 0}}}},
-	{.shape = L, .color = ORANGE, .size = 3, .rotates = {{{0, 0, 1}, {1, 1, 1}, {0, 0, 0}}, 
+	{.shape = L, .color = ORANGE, .size = 3, .rotates = {{{0, 0, 1}, {1, 1, 1}, {0, 0, 0}},
 														{{0, 1, 0}, {0, 1 ,0}, {0, 1, 1}},
 														{{0, 0, 0}, {1, 1, 1}, {1, 0, 0}},
 														{{1, 1, 0}, {0, 1, 0}, {0, 1, 0}}}},
@@ -100,7 +100,7 @@ Shape shape[7] = {
 														 {{0, 0, 0}, {1, 1, 1}, {0, 1, 0}},
 														 {{0, 1, 0}, {1, 1, 0}, {0, 1, 0}}}},
 	{.shape = Z, .color = RED, .size = 3, .rotates = {{{1, 1, 0}, {0, 1, 1}, {0, 0, 0}},
-													  {{0, 0, 1}, {0, 1, 1}, {1, 0, 0}},
+													  {{0, 0, 1}, {0, 1, 1}, {0, 1, 0}},
 													  {{0, 0 ,0}, {1, 1, 0}, {0, 1, 1}},
 													  {{0, 1, 0}, {1, 1, 0}, {1, 0 , 0}}}},
 };
@@ -117,19 +117,77 @@ void resetBlock(Block* block) {
 	block->current = false;
 }
 
-// bool move(int height, int width, Block canvas[height][width], int originalX, int originalY, int originalRotate, int newX, int newY, int newRotate, ShapeID shapeId) {
-// 
-// }
+bool move(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], int originalX, int originalY, int originalRotate, int newX, int newY, int newRotate, ShapeID shapeID) {
+	Shape shapeData = shape[shapeID];
+	int size = shapeData.size;
+
+	// check if the new position is valid to place the block 
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			if (shapeData.rotates[newRotate][i][j]) {
+				if (newX + j < 0 || newX + j >= CANVAS_WIDTH || newY + i >= CANVAS_HEIGHT) {
+					return false;
+				}
+				if (!canvas[newY + i][newX + j].current && canvas[newY + i][newX + j].shape != EMPTY) {
+					return false;
+				}
+			}
+		}
+	}
+
+	// remove the old position
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			if (shapeData.rotates[originalRotate][i][j]) {
+				resetBlock(&canvas[originalY + i][originalX + j]);
+			}
+		}
+	}
+
+	// move the block
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			if (shapeData.rotates[newRotate][i][j]) {
+				setBlock(&canvas[newY + i][newX + j], shapeData.color, shapeID, true);
+			}
+		}
+	}
+
+	return true;
+}
+
+void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
+	printf("\033[0;0H\n");
+	for (int i = 0; i < CANVAS_HEIGHT; i++) {
+		printf("|");
+		for (int j = 0; j < CANVAS_WIDTH; j++) {
+			printf("\033[%dm\u3000", canvas[i][j].color);
+		}
+		printf("\033[0m|\n");
+	}
+	return;
+}
+
+void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
+	if (move(canvas, state->x, state->y, state->rotate, state->x, state->y + 1, state->rotate, state->queue[0]))
+		state->y++;
+	return;
+}
 
 int main() {
-	srand(tim(NULL));
+	srand(time(NULL));
 	State state = {
-		.x = CANVAS_HEIGHT,
+		.x = CANVAS_WIDTH / 2,
 		.y = 0,
 		.score = 0,
 		.rotate = 0,
 		.falltime = 0
 	};
+
+	for (int i = 0; i < 5; i++) {
+		state.queue[i] = rand() % 7;
+	}
+
 	Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH];
 	for (int i = 0; i < CANVAS_HEIGHT; i++) {
 		for (int j = 0; j < CANVAS_WIDTH; j++) {
@@ -137,7 +195,15 @@ int main() {
 		}
 	}
 
-	system("cls");
-	printf("\e[?25l"); // hide cursor */
+	CLS();
+	printf("\e[?251");
+
+	move(canvas, state.x, state.y, state.rotate, state.x, state.y, state.rotate, state.queue[0]);
+
+	while (1) {
+		logic(canvas, &state);
+		printCanvas(canvas, &state);
+		SLEEP(100);
+	}
 	return 0;
 }
