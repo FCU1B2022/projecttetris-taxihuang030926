@@ -156,6 +156,45 @@ bool move(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], int originalX, int original
 	return true;
 }
 
+int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
+	for (int i = 0; i < CANVAS_HEIGHT; i++) {
+		for (int j = 0; j < CANVAS_WIDTH; j++) {
+			if (canvas[i][j].current) {
+				canvas[i][j].current = false;
+			}
+		}
+	}
+	int linesCleared = 0;
+
+	for (int i = CANVAS_HEIGHT - 1, isFull = true; i >= 0; isFull = true) {
+		for (int j = 0; j < CANVAS_WIDTH; j++) {
+			if (canvas[i][j].shape == EMPTY) {
+				isFull = false;
+				break;
+			}
+		}
+
+		if (isFull) {
+			linesCleared++;
+
+			for (int j = 0; j < CANVAS_WIDTH; j++) {
+				resetBlock(&canvas[i][j]);
+			}
+
+			for (int k = i; k > 0; k--) {
+				for (int j = 0; j < CANVAS_WIDTH; j++) {
+					setBlock(&canvas[k][j], canvas[k - 1][j].color, canvas[k - 1][j].shape, false);
+					resetBlock(&canvas[k - 1][j]);
+				}
+			}
+		} else {
+			i--;
+		}
+	}
+
+	return linesCleared;
+}
+
 void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	printf("\033[0;0H\n");
 	for (int i = 0; i < CANVAS_HEIGHT; i++) {
