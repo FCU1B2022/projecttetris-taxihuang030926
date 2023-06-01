@@ -84,9 +84,9 @@ Shape shape[7] = {
 													   {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}},
 													   {{0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}}}},
 	{.shape = J, .color = BLUE, .size = 3, .rotates = {{{1, 0, 0}, {1, 1, 1}, {0, 0, 0}},
-													   {{0, 1, 0}, {0, 1, 0}, {0, 1, 1}},
-													   {{0, 0, 0}, {1, 1, 1}, {1, 0, 0}},
-													   {{1, 1, 0}, {0, 1, 0}, {0, 1, 0}}}},
+													   {{0, 1, 0}, {0, 1, 0}, {1, 1, 0}},
+													   {{0, 0, 0}, {1, 1, 1}, {0, 0, 1}},
+													   {{0, 1, 1}, {0, 1, 0}, {0, 1, 0}}}},
 	{.shape = L, .color = ORANGE, .size = 3, .rotates = {{{0, 0, 1}, {1, 1, 1}, {0, 0, 0}},
 														{{0, 1, 0}, {0, 1 ,0}, {0, 1, 1}},
 														{{0, 0, 0}, {1, 1, 1}, {1, 0, 0}},
@@ -228,7 +228,6 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	}
 
 	printf("\033[%d;%dHSCORE: %10d\n", CANVAS_HEIGHT, CANVAS_WIDTH * 2 + 5, state->score);
-	return;
 }
 
 void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
@@ -239,12 +238,12 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		}
 	}
 	else if (LEFT_FUNC()) {
-		if (move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0])) {
+		if (move(canvas, state->x, state->y, state->rotate, state->x - 1, state->y, state->rotate, state->queue[0])) {
 			state->x--;
 		}
 	}
 	else if (RIGHT_FUNC()) {
-		if (move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0])) {
+		if (move(canvas, state->x, state->y, state->rotate, state->x + 1, state->y, state->rotate, state->queue[0])) {
 			state->x++;
 		}
 	}
