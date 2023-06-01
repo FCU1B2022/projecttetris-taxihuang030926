@@ -2,7 +2,7 @@
 // define constants
 #define CANVAS_HEIGHT 20
 #define CANVAS_WIDTH 10
-#define RENDER_DELAY 100
+#define RENDER_DELAY 75
 #define FALL_DELAY 500
 
 #define LEFT_KEY 0x25
