@@ -5,11 +5,13 @@
 #define RENDER_DELAY 75
 #define FALL_DELAY 500
 
+// define key maps
 #define LEFT_KEY 0x25
 #define RIGHT_KEY 0x27
 #define ROTATE_KEY 0x26
 #define SOFT_DROP_KEY 0x28
 #define HARD_DROP_KEY 0x20
+#define HOLD_KEY 0xA0
 
 // include libraries
 #include <stdio.h>
@@ -26,6 +28,7 @@
 #define ROTATE_FUNC() GetAsyncKeyState(ROTATE_KEY) & 0x8000
 #define SOFT_DROP_FUNC() GetAsyncKeyState(SOFT_DROP_KEY) & 0x8000
 #define HARD_DROP_FUNC() GetAsyncKeyState(HARD_DROP_KEY) & 0x8000
+#define HOLD_FUNC() GetAsyncKeyState(HOLD_KEY) & 0x8000
 #define SLEEP(x) Sleep(x)
 #elif __APPLE__
 #error "MacOS is not supported."
@@ -33,7 +36,9 @@
 #error "Linux is not supported."
 #endif
 
-typedef enum color {
+bool gameState = true;
+
+typedef enum color { // color code
 	RED = 1,
 	GREEN,
 	YELLOW = 220,
@@ -56,14 +61,14 @@ typedef enum shapeID {
 	Z,
 }ShapeID;
 
-typedef struct {
+typedef struct { // define shape structure form
 	ShapeID shape;
 	Color color;
 	int size;
 	char rotates[4][4][4];
 } Shape;
 
-typedef struct {
+typedef struct { // define state structure form
 	int x;
 	int y;
 	int score;
@@ -72,13 +77,13 @@ typedef struct {
 	ShapeID queue[4];
 } State;
 
-typedef struct {
+typedef struct { // define block structure form
 	Color color;
 	ShapeID shape;
 	bool current;
 } Block;
 
-Shape shape[7] = {
+Shape shape[7] = { // shape illustrating
 	{.shape = I, .color = CYAN, .size = 4, .rotates = {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}},
 													   {{0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}},
 													   {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}},
@@ -109,19 +114,20 @@ Shape shape[7] = {
 													  {{0, 1, 0}, {1, 1, 0}, {1, 0 , 0}}}},
 };
 
-void setBlock(Block* block, Color color, ShapeID shape, bool current) {
+void setBlock(Block* block, Color color, ShapeID shape, bool current) { // block setup function
 	block->color = color;
 	block->shape = shape;
 	block->current = current;
 }
 
-void resetBlock(Block* block) {
+void resetBlock(Block* block) { // block reset to empty function
 	block->color = BLACK;
 	block->shape = EMPTY;
 	block->current = false;
 }
 
 bool move(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], int originalX, int originalY, int originalRotate, int newX, int newY, int newRotate, ShapeID shapeID) {
+	// move block function
 	Shape shapeData = shape[shapeID];
 	int size = shapeData.size;
 
@@ -199,6 +205,28 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
 	return linesCleared;
 }
 
+void printStart() {
+	printf("\n\n\n");
+	printf("\t\033[38;5;6m ______    ______   ______    ______   __   ______\n\
+			/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\\n\
+			\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\\n\
+			   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\
+			    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
+	printf("\n\n\n\n");
+	//for (int i = 0; i < 500; i++) {
+	//	if (i % 2){
+			printf("\t\tPress any key to start game.");
+		//SLEEP(750);
+	//}
+}
+/*
+ ______    ______   ______    ______   __   ______
+/\__  __\ /\  ___\ /\__  __\ /\  __ \ /\ \ /\  ___\
+\/_/\ \_/ \ \  ___\\/_/\ \_/ \ \    / \ \ \\ \____ \
+   \ \_\   \ \_____\  \ \_\   \ \_\_\  \ \ \\/\_____\
+    \/_/    \/_____/   \/_/    \/_/_/   \/_/ \/_____/
+*/
+
 void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	printf("\033[0;0H\n");
 	for (int i = 0; i < CANVAS_HEIGHT; i++) {
@@ -262,24 +290,26 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 			state->y++;
 		}
 		else {
-			state->score += clearLine(canvas) * 100;
+			if (gameState) {
+				state->score += clearLine(canvas) * 100;
 
-			state->x = CANVAS_WIDTH / 2;
-			state->y = 0;
-			state->rotate = 0;
-			state->falltime = 0;
-			state->queue[0] = state->queue[1];
-			state->queue[1] = state->queue[2];
-			state->queue[2] = state->queue[3];
-			state->queue[3] = rand() % 7;
+				state->x = CANVAS_WIDTH / 2;
+				state->y = 0;
+				state->rotate = 0;
+				state->falltime = 0;
+				state->queue[0] = state->queue[1];
+				state->queue[1] = state->queue[2];
+				state->queue[2] = state->queue[3];
+				state->queue[3] = rand() % 7;
+			}
 
 			if (!move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0])) {
+				gameState = false;
 				printf("\033[%d;%dH\x1b[41m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
 			}
 		}
 	}
 
-	
 	return;
 }
 
@@ -309,10 +339,11 @@ int main() {
 
 	move(canvas, state.x, state.y, state.rotate, state.x, state.y, state.rotate, state.queue[0]);
 
-	while (1) {
-		logic(canvas, &state);
-		printCanvas(canvas, &state);
-		SLEEP(RENDER_DELAY);
-	}
+		while (1) {
+			logic(canvas, &state);
+			printCanvas(canvas, &state);
+			SLEEP(RENDER_DELAY);
+		}
+
 	return 0;
 }
