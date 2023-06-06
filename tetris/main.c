@@ -3,7 +3,7 @@
 #define CANVAS_HEIGHT 20
 #define CANVAS_WIDTH 10
 #define RENDER_DELAY 75
-#define FALL_DELAY 500
+#define FALL_DELAY 750
 
 // define key maps
 #define LEFT_KEY 0x25
@@ -37,6 +37,7 @@
 #endif
 
 bool gameState = true;
+int highestScore = 0;
 
 typedef enum color { // color code
 	RED = 1,
@@ -74,7 +75,7 @@ typedef struct { // define state structure form
 	int score;
 	int rotate;
 	int falltime;
-	ShapeID queue[4];
+	ShapeID queue[5];
 } State;
 
 typedef struct { // define block structure form
@@ -206,18 +207,19 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
 }
 
 void printStart() {
-	printf("\n\n\n");
-	printf("\t\033[38;5;6m ______    ______   ______    ______   __   ______\n\
-			/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\\n\
-			\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\\n\
-			   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\
-			    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
-	printf("\n\n\n\n");
-	//for (int i = 0; i < 500; i++) {
-	//	if (i % 2){
-			printf("\t\tPress any key to start game.");
-		//SLEEP(750);
-	//}
+	//while (1) {
+
+		printf("\n\n\n");
+		printf("\t\033[38;5;87m ______    ______   ______    ______   __   ______\n\t/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\\n\t\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\\n\t   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\t    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
+		printf("\n\n");
+		
+		printf("\t\tPress SPACE key to start game.");
+	while (1) {
+		if (_kbhit() && getch() == 0x20) {
+			CLS();
+			return;
+		}
+	}
 }
 /*
  ______    ______   ______    ______   __   ______
@@ -245,10 +247,12 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		for (int j = 0; j < 4; j++) {
 			printf("\033[%d;%dH", i * 4 + j, CANVAS_WIDTH * 2 + 15);
 			for (int k = 0; k < 4; k++) {
+				
 				if (j < shapeData.size && k < shapeData.size && shapeData.rotates[0][j][k]) {
 					printf("\033[48;5;%dm\u3000\033[0m", shapeData.color);
 				}
 				else {
+					printf("\033[48;5;0m \033[0m");
 					printf("\x1b[0m ");
 				}
 			}
@@ -300,17 +304,44 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 				state->queue[0] = state->queue[1];
 				state->queue[1] = state->queue[2];
 				state->queue[2] = state->queue[3];
-				state->queue[3] = rand() % 7;
+				state->queue[3] = state->queue[4];
+				state->queue[4] = rand() % 7;
 			}
 
 			if (!move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0])) {
+				printf("\033[%d;%dH\x1b[48;5;160m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
+				printf("\033[%d;%dH\x1b[48;5;34m Press SPACE key to play again \x1b[0m\033[%d;%dH", CANVAS_HEIGHT + 1, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 1, 0);
 				gameState = false;
-				printf("\033[%d;%dH\x1b[41m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
 			}
 		}
 	}
 
 	return;
+}
+
+char getKey() {
+	while (1) {
+		if (_kbhit()) {
+			return getch();
+		}
+	}
+}
+
+void gameInit(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
+	printf("\033[?25l");
+	if (gameState) {
+		for (int i = 0; i < CANVAS_HEIGHT; i++) {
+			for (int j = 0; j < CANVAS_WIDTH; j++) {
+				resetBlock(&canvas[i][j]);
+			}
+		}
+	}
+
+	while (gameState) {
+		logic(canvas, state);
+		printCanvas(canvas, state);
+		SLEEP(RENDER_DELAY);
+	}
 }
 
 int main() {
@@ -330,20 +361,35 @@ int main() {
 		}
 	}
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 6; i++) {
 		state.queue[i] = rand() % 7;
 	}
 
 	CLS();
-	printf("\e[?25l");
+	printf("\033[?25l");
 
 	move(canvas, state.x, state.y, state.rotate, state.x, state.y, state.rotate, state.queue[0]);
 
-		while (1) {
-			logic(canvas, &state);
-			printCanvas(canvas, &state);
-			SLEEP(RENDER_DELAY);
-		}
+	printStart();
 
+	while (1) {
+		gameInit(canvas, &state);
+
+		State state = {
+		.x = CANVAS_WIDTH / 2,
+		.y = 0,
+		.score = 0,
+		.rotate = 0,
+		.falltime = 0
+		};
+
+		for (int i = 0; i < 6; i++) {
+			state.queue[i] = rand() % 7;
+		}
+		if (_kbhit() && getch() == 0x20) {
+			gameState = true;
+		}
+	}
 	return 0;
+
 }
