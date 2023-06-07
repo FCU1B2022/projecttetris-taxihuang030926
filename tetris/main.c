@@ -75,6 +75,8 @@ typedef struct { // define state structure form
 	int score;
 	int rotate;
 	int falltime;
+	int hold;
+	bool isHold;
 	ShapeID queue[5];
 } State;
 
@@ -206,14 +208,41 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
 	return linesCleared;
 }
 
-void printStart() {
-	//while (1) {
+void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
+	if (state->isHold && HOLD_FUNC()) {
+		for (int i = 0; i < shape[state->queue[0]].size; i++) {
+			for (int j = 0; j < shape[state->queue[0]].size; j++) {
+				resetBlock(&canvas[state->y + i][state->x + j]);
+			}
+		}
 
-		printf("\n\n\n");
-		printf("\t\033[38;5;87m ______    ______   ______    ______   __   ______\n\t/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\\n\t\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\\n\t   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\t    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
-		printf("\n\n");
+		if (state->hold == -1) {
+			state->hold = state->queue[0];
+			state->queue[0] = state->queue[1];
+			state->queue[1] = state->queue[2];
+			state->queue[2] = state->queue[3];
+			state->queue[3] = state->queue[4];
+			state->queue[4] = rand() % 7;
+		}
+		else {
+			ShapeID tmp = state->queue[0];
+			state->queue[0] = state->hold;
+			state->hold = tmp;
+		}
+		state->x = CANVAS_WIDTH / 2;
+		state->y = 0;
+		state->rotate = 0;
+		state->falltime = 0;
+		state->isHold = false;
+	}
+}
+
+void printStart() {
+	printf("\n\n\n");
+	printf("\t\033[48;5;12m ______    ______   ______    ______   __   ______   \n\t/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\  \n\t\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\ \033[0m\n\t\033[48;5;227m   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\t    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
+	printf("\n\n");
 		
-		printf("\t\tPress SPACE key to start game.");
+	printf("\t\tPress SPACE key to start game.");
 	while (1) {
 		if (_kbhit() && getch() == 0x20) {
 			CLS();
@@ -259,7 +288,24 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		}
 	}
 
+	Shape holdData = shape[state->hold];
+	printf("\033[%d;%dHHOLD:", 3, CANVAS_WIDTH * 2 + 20);
+	for (int i = 0; i < 4; i++) {
+		printf("\033[%d;%dH", 4 + i, CANVAS_WIDTH * 2 + 15);
+		for (int j = 0; j < 4; j++) {
+
+			if (i < holdData.size && j < holdData.size && holdData.rotates[0][i][j]) {
+				printf("\033[48;5;%dm\u3000\033[0m", shapeData.color);
+			}
+			else {
+				printf("\033[48;5;0m \033[0m");
+				printf("\x1b[0m ");
+			}
+		}
+	}
+
 	printf("\033[%d;%dHSCORE: %10d\n", CANVAS_HEIGHT, CANVAS_WIDTH * 2 + 5, state->score);
+	printf("\033[%d;%dHHIGHEST SCORE: %10d\n", CANVAS_HEIGHT + 5, CANVAS_WIDTH * 2 + 5, state->score);
 }
 
 void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
@@ -285,6 +331,9 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	else if (HARD_DROP_FUNC()) {
 		state->falltime = FALL_DELAY * CANVAS_HEIGHT;
 	}
+	else if (HOLD_FUNC()) {
+		hold(canvas, state);
+	}
 
 	state->falltime += RENDER_DELAY;
 	while (state->falltime >= FALL_DELAY) {
@@ -294,24 +343,25 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 			state->y++;
 		}
 		else {
-			if (gameState) {
-				state->score += clearLine(canvas) * 100;
+			
+			state->score += clearLine(canvas) * 100;
 
-				state->x = CANVAS_WIDTH / 2;
-				state->y = 0;
-				state->rotate = 0;
-				state->falltime = 0;
-				state->queue[0] = state->queue[1];
-				state->queue[1] = state->queue[2];
-				state->queue[2] = state->queue[3];
-				state->queue[3] = state->queue[4];
-				state->queue[4] = rand() % 7;
-			}
+			state->x = CANVAS_WIDTH / 2;
+			state->y = 0;
+			state->rotate = 0;
+			state->falltime = 0;
+			state->queue[0] = state->queue[1];
+			state->queue[1] = state->queue[2];
+			state->queue[2] = state->queue[3];
+			state->queue[3] = state->queue[4];
+			state->queue[4] = rand() % 7;
 
 			if (!move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0])) {
 				printf("\033[%d;%dH\x1b[48;5;160m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
 				printf("\033[%d;%dH\x1b[48;5;34m Press SPACE key to play again \x1b[0m\033[%d;%dH", CANVAS_HEIGHT + 1, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 1, 0);
 				gameState = false;
+				system("pause");
+				break;
 			}
 		}
 	}
@@ -319,32 +369,7 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	return;
 }
 
-char getKey() {
-	while (1) {
-		if (_kbhit()) {
-			return getch();
-		}
-	}
-}
-
-void gameInit(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
-	printf("\033[?25l");
-	if (gameState) {
-		for (int i = 0; i < CANVAS_HEIGHT; i++) {
-			for (int j = 0; j < CANVAS_WIDTH; j++) {
-				resetBlock(&canvas[i][j]);
-			}
-		}
-	}
-
-	while (gameState) {
-		logic(canvas, state);
-		printCanvas(canvas, state);
-		SLEEP(RENDER_DELAY);
-	}
-}
-
-int main() {
+void gameInit() {
 	srand(time(NULL));
 	State state = {
 		.x = CANVAS_WIDTH / 2,
@@ -354,6 +379,10 @@ int main() {
 		.falltime = 0
 	};
 
+	for (int i = 0; i < 5; i++) {
+		state.queue[i] = rand() % 7;
+	}
+
 	Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH];
 	for (int i = 0; i < CANVAS_HEIGHT; i++) {
 		for (int j = 0; j < CANVAS_WIDTH; j++) {
@@ -361,33 +390,29 @@ int main() {
 		}
 	}
 
-	for (int i = 0; i < 6; i++) {
-		state.queue[i] = rand() % 7;
-	}
-
 	CLS();
-	printf("\033[?25l");
-
+	printf("\033[e?25l");
 	move(canvas, state.x, state.y, state.rotate, state.x, state.y, state.rotate, state.queue[0]);
+
+	while (gameState) {
+		logic(canvas, &state);
+		printCanvas(canvas, &state);
+		SLEEP(RENDER_DELAY);
+	}
+}
+
+int main() {
 
 	printStart();
 
 	while (1) {
-		gameInit(canvas, &state);
-
-		State state = {
-		.x = CANVAS_WIDTH / 2,
-		.y = 0,
-		.score = 0,
-		.rotate = 0,
-		.falltime = 0
-		};
-
-		for (int i = 0; i < 6; i++) {
-			state.queue[i] = rand() % 7;
-		}
+		gameInit();
 		if (_kbhit() && getch() == 0x20) {
 			gameState = true;
+			continue;
+		}
+		else if (_kbhit() && getch() == 0x58) {
+			break;
 		}
 	}
 	return 0;
