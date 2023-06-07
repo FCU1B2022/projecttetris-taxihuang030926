@@ -36,8 +36,8 @@
 #error "Linux is not supported."
 #endif
 
-bool gameState = true;
-int highestScore = 0;
+bool gameState = true; // universal store game state
+int highestScore = 0; // universal store highest score
 
 typedef enum color { // color code
 	RED = 1,
@@ -51,7 +51,7 @@ typedef enum color { // color code
 	ORANGE = 208,
 }Color;
 
-typedef enum shapeID {
+typedef enum shapeID { // shape number label
 	EMPTY = -1,
 	I,
 	J,
@@ -86,7 +86,7 @@ typedef struct { // define block structure form
 	bool current;
 } Block;
 
-Shape shape[7] = { // shape illustrating
+Shape shape[7] = { // shape illustration
 	{.shape = I, .color = CYAN, .size = 4, .rotates = {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}},
 													   {{0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}, {0, 0, 1, 0}},
 													   {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}},
@@ -169,8 +169,8 @@ bool move(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], int originalX, int original
 	return true;
 }
 
-int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
-	for (int i = 0; i < CANVAS_HEIGHT; i++) {
+int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) { // clear line func
+	for (int i = 0; i < CANVAS_HEIGHT; i++) { // change state of empty space when tetrimino placed
 		for (int j = 0; j < CANVAS_WIDTH; j++) {
 			if (canvas[i][j].current) {
 				canvas[i][j].current = false;
@@ -179,7 +179,7 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
 	}
 	int linesCleared = 0;
 
-	for (int i = CANVAS_HEIGHT - 1, isFull = true; i >= 0; isFull = true) {
+	for (int i = CANVAS_HEIGHT - 1, isFull = true; i >= 0; isFull = true) { // detect line formed
 		for (int j = 0; j < CANVAS_WIDTH; j++) {
 			if (canvas[i][j].shape == EMPTY) {
 				isFull = false;
@@ -208,12 +208,12 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
 	return linesCleared;
 }
 
-void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
-	if (!state->isHold && HOLD_FUNC()) {
-		state->isHold = true;
+void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) { // hold tetrimino function
+	if (!state->isHold && HOLD_FUNC()) { 
+		state->isHold = true; 
 		for (int i = 0; i < shape[state->queue[0]].size; i++) {
 			for (int j = 0; j < shape[state->queue[0]].size; j++) {
-				resetBlock(&canvas[state->y + i][state->x + j]);
+				resetBlock(&canvas[state->y + i][state->x + j]); // reset to let print next tetrimino
 			}
 		}
 		state->x = CANVAS_WIDTH / 2;
@@ -221,7 +221,7 @@ void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		state->rotate = 0;
 		state->falltime = 0;
 
-		if (state->hold == EMPTY) {
+		if (state->hold == EMPTY) { // when hold is empty, use queue[0]'s shape then add on
 			state->hold = state->queue[0];
 			state->queue[0] = state->queue[1];
 			state->queue[1] = state->queue[2];
@@ -229,7 +229,7 @@ void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 			state->queue[3] = state->queue[4];
 			state->queue[4] = rand() % 7;
 		}
-		else {
+		else { // when hold is full, swap shape with queue[0]'s shape
 			ShapeID tmp = state->hold;
 			state->hold = state->queue[0];
 			state->queue[0] = tmp;
@@ -238,7 +238,7 @@ void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	}
 }
 
-void printStart() {
+void printStart() { // print startup welcoming page
 	printf("\033[?25l");
 	printf("\n\n\n");
 	printf("\t\033[48;5;12m ______    ______   ______    ______   __   ______   \n\t/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\  \n\t\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\ \033[0m\n\t\033[48;5;227m   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\t    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
@@ -252,7 +252,7 @@ void printStart() {
 		}
 	}
 }
-/*
+/* 
  ______    ______   ______    ______   __   ______
 /\__  __\ /\  ___\ /\__  __\ /\  __ \ /\ \ /\  ___\
 \/_/\ \_/ \ \  ___\\/_/\ \_/ \ \    / \ \ \\ \____ \
@@ -260,7 +260,8 @@ void printStart() {
     \/_/    \/_____/   \/_/    \/_/_/   \/_/ \/_____/
 */
 
-void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
+void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) { // print game interface
+	// print game frame
 	printf("\033[0;0H\n");
 	for (int i = 0; i < CANVAS_HEIGHT; i++) {
 		printf("|");
@@ -270,7 +271,7 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		printf("\x1b[0m|\n");
 	}
 
-	// print next tetrimino
+	// print next tetrimino section
 	Shape shapeData = shape[state->queue[1]];
 	printf("\033[%d;%dHNEXT:", 3, CANVAS_WIDTH * 2 + 5);
 	for (int i = 1; i <= 4; i++) {
@@ -290,6 +291,7 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		}
 	}
 
+	// print hold section
 	Shape holdData = shape[state->hold];
 	printf("\033[%d;%dHHOLD:", 3, CANVAS_WIDTH * 2 + 25);
 	for (int i = 0; i < 4; i++) {
@@ -306,12 +308,14 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 		}
 	}
 
+	// print score and highest score
 	printf("\033[%d;%dHSCORE: %10d\n", CANVAS_HEIGHT, CANVAS_WIDTH * 2 + 5, state->score);
 	if (highestScore < state->score) highestScore = state->score;
 	printf("\033[%d;%dHHIGHEST SCORE: %10d\n", CANVAS_HEIGHT + 5, CANVAS_WIDTH * 2 + 5, highestScore);
 }
 
 void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
+	// key, function mapping 
 	if (ROTATE_FUNC()) {
 		int newRotate = (state->rotate + 1) % 4;
 		if (move(canvas, state->x, state->y, state->rotate, state->x, state->y, newRotate, state->queue[0])) {
@@ -333,7 +337,6 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	}
 	else if (HARD_DROP_FUNC()) {
 		state->falltime = FALL_DELAY * CANVAS_HEIGHT;
-		//state->isHold = false;
 	}
 	if (HOLD_FUNC()) {
 		hold(canvas, state);
@@ -341,15 +344,18 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 
 	state->falltime += RENDER_DELAY;
 	while (state->falltime >= FALL_DELAY) {
+		// time gap to lock on tetrimino position
 		state->falltime -= FALL_DELAY;
 
 		if (move(canvas, state->x, state->y, state->rotate, state->x, state->y + 1, state->rotate, state->queue[0])) {
+			// tetrimino gravity count
 			state->y++;
 		}
 		else {
-			
+			// score count
 			state->score += clearLine(canvas) * 100;
 
+			// initial/ change tetrimino state
 			state->x = CANVAS_WIDTH / 2;
 			state->y = 0;
 			state->rotate = 0;
@@ -374,7 +380,7 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	return;
 }
 
-void gameInit() {
+void gameInit() { // game body 
 	srand(time(NULL));
 	State state = {
 		.x = CANVAS_WIDTH / 2,
@@ -414,11 +420,11 @@ int main() {
 
 	while (1) {
 		gameInit();
-		if (_kbhit() && getch() == 0x20) {
+		if (_kbhit() && getch() == 0x20) { // space pressed to play again 
 			gameState = true;
 			continue;
 		}
-		else if (_kbhit() && getch() == 0x58) {
+		else if (_kbhit() && getch() == 0x58) { // press X to quit
 			break;
 		}
 	}
