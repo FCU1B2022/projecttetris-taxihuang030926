@@ -75,9 +75,9 @@ typedef struct { // define state structure form
 	int score;
 	int rotate;
 	int falltime;
-	int hold;
 	bool isHold;
 	ShapeID queue[5];
+	ShapeID hold;
 } State;
 
 typedef struct { // define block structure form
@@ -209,14 +209,19 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
 }
 
 void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
-	if (state->isHold && HOLD_FUNC()) {
+	if (!state->isHold && HOLD_FUNC()) {
+		state->isHold = true;
 		for (int i = 0; i < shape[state->queue[0]].size; i++) {
 			for (int j = 0; j < shape[state->queue[0]].size; j++) {
 				resetBlock(&canvas[state->y + i][state->x + j]);
 			}
 		}
+		state->x = CANVAS_WIDTH / 2;
+		state->y = 0;
+		state->rotate = 0;
+		state->falltime = 0;
 
-		if (state->hold == -1) {
+		if (state->hold == EMPTY) {
 			state->hold = state->queue[0];
 			state->queue[0] = state->queue[1];
 			state->queue[1] = state->queue[2];
@@ -225,19 +230,16 @@ void hold(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 			state->queue[4] = rand() % 7;
 		}
 		else {
-			ShapeID tmp = state->queue[0];
-			state->queue[0] = state->hold;
-			state->hold = tmp;
+			ShapeID tmp = state->hold;
+			state->hold = state->queue[0];
+			state->queue[0] = tmp;
 		}
-		state->x = CANVAS_WIDTH / 2;
-		state->y = 0;
-		state->rotate = 0;
-		state->falltime = 0;
-		state->isHold = false;
+		move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0]);
 	}
 }
 
 void printStart() {
+	printf("\033[?25l");
 	printf("\n\n\n");
 	printf("\t\033[48;5;12m ______    ______   ______    ______   __   ______   \n\t/\\__  __\\ /\\  ___\\ /\\__  __\\ /\\  __ \\ /\\ \\ /\\  ___\\  \n\t\\/_/\\ \\_/ \\ \\  ___\\\\/_/\\ \\_/ \\ \\    / \\ \\ \\\\ \\____ \\ \033[0m\n\t\033[48;5;227m   \\ \\_\\   \\ \\_____\\  \\ \\_\\   \\ \\_\\_\\  \\ \\ \\\\/\\_____\\\n\t    \\/_/    \\/_____/   \\/_/    \\/_/_/   \\/_/ \\/_____/\033[0m\n");
 	printf("\n\n");
@@ -289,13 +291,13 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	}
 
 	Shape holdData = shape[state->hold];
-	printf("\033[%d;%dHHOLD:", 3, CANVAS_WIDTH * 2 + 20);
+	printf("\033[%d;%dHHOLD:", 3, CANVAS_WIDTH * 2 + 25);
 	for (int i = 0; i < 4; i++) {
-		printf("\033[%d;%dH", 4 + i, CANVAS_WIDTH * 2 + 15);
+		printf("\033[%d;%dH", 4 + i, CANVAS_WIDTH * 2 + 30);
 		for (int j = 0; j < 4; j++) {
 
 			if (i < holdData.size && j < holdData.size && holdData.rotates[0][i][j]) {
-				printf("\033[48;5;%dm\u3000\033[0m", shapeData.color);
+				printf("\033[48;5;%dm\u3000\033[0m", holdData.color);
 			}
 			else {
 				printf("\033[48;5;0m \033[0m");
@@ -305,7 +307,8 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	}
 
 	printf("\033[%d;%dHSCORE: %10d\n", CANVAS_HEIGHT, CANVAS_WIDTH * 2 + 5, state->score);
-	printf("\033[%d;%dHHIGHEST SCORE: %10d\n", CANVAS_HEIGHT + 5, CANVAS_WIDTH * 2 + 5, state->score);
+	if (highestScore < state->score) highestScore = state->score;
+	printf("\033[%d;%dHHIGHEST SCORE: %10d\n", CANVAS_HEIGHT + 5, CANVAS_WIDTH * 2 + 5, highestScore);
 }
 
 void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
@@ -330,8 +333,9 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 	}
 	else if (HARD_DROP_FUNC()) {
 		state->falltime = FALL_DELAY * CANVAS_HEIGHT;
+		//state->isHold = false;
 	}
-	else if (HOLD_FUNC()) {
+	if (HOLD_FUNC()) {
 		hold(canvas, state);
 	}
 
@@ -350,6 +354,7 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 			state->y = 0;
 			state->rotate = 0;
 			state->falltime = 0;
+			state->isHold = false;
 			state->queue[0] = state->queue[1];
 			state->queue[1] = state->queue[2];
 			state->queue[2] = state->queue[3];
@@ -357,7 +362,7 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state) {
 			state->queue[4] = rand() % 7;
 
 			if (!move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0])) {
-				printf("\033[%d;%dH\x1b[48;5;160m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
+				printf("\033[%d;%dH\x1b[48;5;160m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 1, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 3, 0);
 				printf("\033[%d;%dH\x1b[48;5;34m Press SPACE key to play again \x1b[0m\033[%d;%dH", CANVAS_HEIGHT + 1, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 1, 0);
 				gameState = false;
 				system("pause");
@@ -376,7 +381,9 @@ void gameInit() {
 		.y = 0,
 		.score = 0,
 		.rotate = 0,
-		.falltime = 0
+		.falltime = 0,
+		.hold = -1,
+		.isHold = false
 	};
 
 	for (int i = 0; i < 5; i++) {
